@@ -538,6 +538,38 @@
   $('selbar-pool').addEventListener('click', () => { if (selected) move(selected, null); select(null); });
   $('selbar-cancel').addEventListener('click', () => select(null));
   $('pool-toggle').addEventListener('click', () => $('pool').classList.toggle('collapsed'));
+
+  // ---------- telefon: przełącznik „Rzut / Lista” ----------
+  const VIEW_KEY = 'kletno-pokoje:view';
+  let planView = false;
+  try { planView = localStorage.getItem(VIEW_KEY) === 'plan'; } catch (e) { /* brak dostępu */ }
+
+  function fitPlan() {
+    const floors = $('floors');
+    if (planView && isMobile()) {
+      const planWidth = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--plan-width')) || 760;
+      const avail = $('floors').parentElement.clientWidth - 20; // padding .layout
+      floors.style.zoom = String(Math.min(1, avail / planWidth));
+    } else {
+      floors.style.zoom = '';
+    }
+  }
+
+  function applyView() {
+    document.body.classList.toggle('plan-view', planView);
+    const btn = $('btn-view');
+    btn.textContent = planView ? 'Lista' : 'Rzut';
+    btn.setAttribute('aria-pressed', String(planView));
+    fitPlan();
+  }
+
+  $('btn-view').addEventListener('click', () => {
+    planView = !planView;
+    try { localStorage.setItem(VIEW_KEY, planView ? 'plan' : 'list'); } catch (e) { /* brak dostępu */ }
+    applyView();
+  });
+  window.addEventListener('resize', fitPlan);
+  applyView();
   $('search').addEventListener('input', renderPool);
   $('btn-print').addEventListener('click', () => { renderPrint(); window.print(); });
   window.addEventListener('beforeprint', renderPrint);

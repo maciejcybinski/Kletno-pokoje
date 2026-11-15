@@ -159,6 +159,7 @@ body.selecting #pool { cursor: pointer; }
 }
 .hint { margin: 0; padding: 8px 14px 12px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
 .only-mobile { display: none; }
+:root { --plan-width: 760px; }
 
 /* ---------- piętra i pokoje ---------- */
 .floor { margin-bottom: 24px; }
@@ -390,15 +391,22 @@ dialog::backdrop { background: rgba(0, 0, 0, .4); }
   #pool.collapsed .pool-search, #pool.collapsed #pool-list, #pool.collapsed .hint { display: none; }
   #pool.collapsed #pool-toggle { transform: rotate(180deg); }
   .hint { display: none; }
-  .floor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; grid-template-rows: none !important; gap: 8px; padding: 8px; }
-  .room { grid-column: auto !important; grid-row: auto !important; padding: 6px; }
-  .area { display: none; }
-  .beds { grid-template-columns: 1fr; }
-  .bed-ico { display: none; }
   #selbar { top: 10px; bottom: auto; }
+  .bed-ico { display: none; }
+  #btn-print { display: none; }
+
+  /* widok „Lista”: pokoje w 2 kolumnach, po numerach */
+  body:not(.plan-view) .floor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; grid-template-rows: none !important; gap: 8px; padding: 8px; }
+  body:not(.plan-view) .room { grid-column: auto !important; grid-row: auto !important; padding: 6px; }
+  body:not(.plan-view) .area { display: none; }
+  body:not(.plan-view) .beds { grid-template-columns: 1fr; }
+
+  /* widok „Rzut”: plan jak na komputerze, pomniejszony do szerokości ekranu (zoom ustawia app.js) */
+  body.plan-view #floors { width: var(--plan-width); }
+  body.plan-view .beds { grid-template-columns: 1fr; }
 }
 @media (max-width: 360px) {
-  .floor-grid { grid-template-columns: 1fr !important; }
+  body:not(.plan-view) .floor-grid { grid-template-columns: 1fr !important; }
 }
 
 /* ---------- wydruk ---------- */
