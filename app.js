@@ -86,16 +86,63 @@
     };
   }
 
+  const AUTH_ERRORS = {
+    'auth/invalid-credential': 'Nieprawidłowe hasło.',
+    'auth/wrong-password': 'Nieprawidłowe hasło.',
+    'auth/invalid-login-credentials': 'Nieprawidłowe hasło.',
+    'auth/user-not-found': 'Konto logowania nie istnieje – sprawdź konfigurację (README).',
+    'auth/too-many-requests': 'Zbyt wiele prób. Spróbuj ponownie za kilka minut.',
+    'auth/network-request-failed': 'Brak połączenia z internetem.',
+    'auth/operation-not-allowed': 'Logowanie hasłem nie jest włączone w Firebase (README).',
+  };
+
   function firebaseStore(cfg) {
     firebase.initializeApp(cfg);
+    const auth = firebase.auth();
     const db = firebase.database();
     const ref = db.ref('plans/' + planId);
+    const email = window.SHARED_LOGIN_EMAIL;
+    $('login-user').value = email;
+
+    $('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = $('login-btn');
+      const err = $('login-error');
+      btn.disabled = true;
+      err.hidden = true;
+      try {
+        await auth.signInWithEmailAndPassword(email, $('login-pass').value);
+        $('login-pass').value = '';
+      } catch (ex) {
+        err.textContent = AUTH_ERRORS[ex.code] || 'Błąd logowania: ' + ex.message;
+        err.hidden = false;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    $('btn-logout').addEventListener('click', () => {
+      if (confirm('Wylogować się na tym urządzeniu?')) auth.signOut();
+    });
+
     return {
       mode: 'online',
       subscribe(f) {
-        ref.on('value', (s) => f(s.val()), (err) => {
-          console.error(err);
-          setStatus('error', err.message);
+        // logowanie zapamiętywane jest na urządzeniu, więc hasło podaje się raz
+        auth.onAuthStateChanged((user) => {
+          ref.off();
+          $('btn-logout').hidden = !user;
+          $('login').hidden = !!user;
+          if (!user) {
+            f(null);
+            setTimeout(() => $('login-pass').focus(), 0);
+            return;
+          }
+          ref.on('value', (s) => f(s.val()), (err) => {
+            console.error(err);
+            setStatus('error', err.code === 'PERMISSION_DENIED'
+              ? 'Brak dostępu – adres w firebase-config.js i database.rules.json musi być taki sam.'
+              : err.message);
+          });
         });
         db.ref('.info/connected').on('value', (s) => setStatus(s.val() ? 'online' : 'offline'));
       },
@@ -468,7 +515,7 @@
   // ---------- kliknięcia / dotknięcia ----------
   document.addEventListener('click', (e) => {
     if (suppressClick) { e.preventDefault(); e.stopPropagation(); return; }
-    if (e.target.closest('dialog, #selbar, header, input, button, label')) return;
+    if (e.target.closest('dialog, #selbar, #login, header, input, button, label')) return;
     const c = e.target.closest('.chip[data-person]');
     const bed = e.target.closest('.bed');
     const pool = e.target.closest('#pool');

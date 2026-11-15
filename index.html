@@ -14,8 +14,20 @@
     <div class="actions">
       <button id="btn-people" class="primary">Osoby</button>
       <button id="btn-print">Drukuj</button>
+      <button id="btn-logout" hidden>Wyloguj</button>
     </div>
   </header>
+
+  <div id="login" hidden>
+    <form id="login-form" class="login-card">
+      <h2>Kletno · przydział pokoi</h2>
+      <p class="muted">Podaj hasło, aby zobaczyć i edytować przydziały.</p>
+      <input id="login-user" type="text" name="username" autocomplete="username" hidden>
+      <input id="login-pass" type="password" name="password" autocomplete="current-password" placeholder="Hasło" required>
+      <p id="login-error" class="login-error" hidden></p>
+      <button id="login-btn" type="submit" class="primary">Zaloguj</button>
+    </form>
+  </div>
 
   <div class="layout">
     <aside id="pool" aria-label="Osoby bez pokoju">
@@ -70,6 +82,7 @@
   <div id="print-list"></div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="house.js"></script>

@@ -2,8 +2,8 @@
   "rules": {
     "plans": {
       "$plan": {
-        ".read": "$plan.matches(/^[A-Za-z0-9_-]{1,40}$/)",
-        ".write": "$plan.matches(/^[A-Za-z0-9_-]{1,40}$/)",
+        ".read": "auth != null && auth.token.email == 'kletno@example.com' && $plan.matches(/^[A-Za-z0-9_-]{1,40}$/)",
+        ".write": "auth != null && auth.token.email == 'kletno@example.com' && $plan.matches(/^[A-Za-z0-9_-]{1,40}$/)",
         "people": {
           "$pid": {
             ".validate": "$pid.matches(/^[a-z0-9]{1,30}$/) && newData.hasChildren(['name'])",
