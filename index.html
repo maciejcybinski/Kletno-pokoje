@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Kletno – przydział pokoi</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Kletno <span class="sub">· przydział pokoi</span></h1>
+    <span id="status" class="status">Łączenie…</span>
+    <span id="stats" class="stats"></span>
+    <div class="actions">
+      <button id="btn-people" class="primary">Osoby</button>
+      <button id="btn-print">Drukuj</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside id="pool" aria-label="Osoby bez pokoju">
+      <div class="pool-head">
+        <strong>Bez pokoju</strong>
+        <span id="pool-count" class="badge">0</span>
+        <button id="pool-toggle" class="icon only-mobile" aria-label="Zwiń lub rozwiń listę">▾</button>
+      </div>
+      <div class="pool-search"><input id="search" type="search" placeholder="Szukaj…" autocomplete="off"></div>
+      <div id="pool-list"></div>
+      <p class="hint">Przeciągnij osobę na łóżko — albo dotknij osobę, a potem łóżko. Na telefonie przeciąganie: przytrzymaj palec.</p>
+    </aside>
+
+    <main id="floors"></main>
+  </div>
+
+  <div id="selbar" hidden>
+    <span>Wybrano: <strong id="selbar-name"></strong> — dotknij łóżka</span>
+    <button id="selbar-pool">Do puli</button>
+    <button id="selbar-cancel">Anuluj</button>
+  </div>
+
+  <dialog id="dlg">
+    <form method="dialog" class="dlg-head">
+      <h2>Osoby i dane</h2>
+      <button class="icon" aria-label="Zamknij">✕</button>
+    </form>
+    <div class="dlg-body">
+      <section>
+        <h3>Dodaj osoby</h3>
+        <textarea id="add-names" rows="4" placeholder="Jedna osoba w linii, np.&#10;Anna Kowalska&#10;Jan Nowak"></textarea>
+        <button id="btn-add" class="primary">Dodaj</button>
+      </section>
+      <section>
+        <h3>Lista osób <span id="people-count" class="badge"></span></h3>
+        <div id="people-list"></div>
+      </section>
+      <section>
+        <h3>Dane</h3>
+        <div class="row">
+          <button id="btn-export">Eksport JSON</button>
+          <label class="btn">Import JSON<input id="file-import" type="file" accept="application/json,.json" hidden></label>
+          <button id="btn-reset" class="danger">Wyczyść przydziały</button>
+          <button id="btn-clear-all" class="danger">Usuń wszystko</button>
+        </div>
+        <p id="plan-info" class="muted small"></p>
+      </section>
+    </div>
+  </dialog>
+
+  <div id="print-list"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="house.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "plans": {
+      "$plan": {
+        ".read": "$plan.matches(/^[A-Za-z0-9_-]{1,40}$/)",
+        ".write": "$plan.matches(/^[A-Za-z0-9_-]{1,40}$/)",
+        "people": {
+          "$pid": {
+            ".validate": "$pid.matches(/^[a-z0-9]{1,30}$/) && newData.hasChildren(['name'])",
+            "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 60" },
+            "$other": { ".validate": false }
+          }
+        },
+        "beds": {
+          "$bed": {
+            ".validate": "$bed.matches(/^r[0-9]{1,3}-[0-9]{1,2}$/) && newData.isString() && newData.val().matches(/^[a-z0-9]{1,30}$/)"
+          }
+        },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}
