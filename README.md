@@ -56,4 +56,9 @@ Repozytorium na GitHubie → **Settings → Pages → Build and deployment**: *D
 
 ## Zmiana układu domu
 
-Edytuj [house.js](house.js). Pozycje pokoi (`x`, `y`, `w`, `h`) odpowiadają siatce piętra, liczba kolumn to `cols`, a `corridorRow` wskazuje wiersz korytarza. Na telefonie pokoje układają się automatycznie w 2 kolumny.
+Edytuj [house.js](house.js). Układ odwzorowuje odręczny szkic rozkładu pokoi:
+- `cols` to proporcje szerokości kolumn siatki piętra,
+- pozycje pokoi (`x`, `y`, `w`, `h`) odpowiadają kolumnom i wierszom tej siatki,
+- `areas` opisuje korytarze, schody i obszary zakreskowane.
+
+Na telefonie pokoje układają się automatycznie w 2 kolumny, w kolejności numerów.

@@ -8,7 +8,7 @@
 
   const BEDS = [];
   HOUSE.floors.forEach((f) =>
-    f.rooms.forEach((r) => {
+    f.rooms.sort((a, b) => a.no - b.no).forEach((r) => {
       r.bedIds = [];
       for (let i = 1; i <= r.beds; i++) {
         const id = `r${r.no}-${i}`;
@@ -265,12 +265,15 @@
       head.append(h('h2', null, f.name), h('span', 'muted', `${used}/${cap} miejsc`));
 
       const grid = h('div', 'floor-grid');
-      grid.style.setProperty('--cols', f.cols);
-      if (f.corridorRow) {
-        const c = h('div', 'corridor', f.corridorLabel || 'korytarz');
-        c.style.gridRow = String(f.corridorRow);
-        grid.append(c);
-      }
+      grid.style.gridTemplateColumns = typeof f.cols === 'number' ? `repeat(${f.cols}, minmax(0, 1fr))` : f.cols;
+      if (f.rows) grid.style.gridTemplateRows = f.rows;
+      (f.areas || []).forEach((a) => {
+        const el = h('div', 'area area-' + a.type + (a.join ? ' join-' + a.join : ''));
+        if (a.label) el.append(h('span', null, a.label));
+        el.style.gridColumn = `${a.x} / span ${a.w || 1}`;
+        el.style.gridRow = `${a.y} / span ${a.h || 1}`;
+        grid.append(el);
+      });
       f.rooms.forEach((r) => {
         const room = h('div', 'room');
         room.style.gridColumn = `${r.x} / span ${r.w || 1}`;

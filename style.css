@@ -2,6 +2,7 @@
   --bg: #f3f0e8;
   --panel: #ffffff;
   --floor: #ebe6da;
+  --corridor: #dfd8c7;
   --ink: #23211d;
   --muted: #736d62;
   --line: #ddd6c7;
@@ -23,6 +24,7 @@
     --bg: #161513;
     --panel: #22201d;
     --floor: #1b1a17;
+    --corridor: #2a2823;
     --ink: #ece8df;
     --muted: #a39d90;
     --line: #3a3630;
@@ -164,24 +166,42 @@ body.selecting #pool { cursor: pointer; }
 .floor-head h2 { font-size: 16px; margin: 0; }
 .floor-head .muted { font-size: 13px; }
 .floor-grid {
+  --gap: 10px;
   display: grid;
-  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--gap);
   padding: 12px;
   background: var(--floor);
   border: 3px solid var(--line);
   border-radius: var(--radius);
 }
-.corridor {
-  grid-column: 1 / -1;
-  text-align: center;
+.area {
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border-radius: 6px;
   font-size: 11px;
   letter-spacing: .2em;
   text-transform: uppercase;
   color: var(--muted);
-  padding: 4px;
-  border: 1px dashed var(--line);
-  border-radius: 6px;
+}
+.area span { background: var(--floor); padding: 2px 6px; border-radius: 4px; }
+.area-corridor { background: var(--corridor); }
+.area-corridor span { background: transparent; }
+/* zlewanie z sąsiednim obszarem: zachodzi na odstęp siatki */
+.join-top { margin-top: calc(-1 * var(--gap)); border-top-left-radius: 0; border-top-right-radius: 0; }
+.join-bottom { margin-bottom: calc(-1 * var(--gap)); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.join-left { margin-left: calc(-1 * var(--gap)); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.join-right { margin-right: calc(-1 * var(--gap)); border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.area-stairs {
+  border: 1px solid var(--line);
+  background: repeating-linear-gradient(90deg, transparent 0 9px, var(--line) 9px 11px);
+  letter-spacing: .05em;
+  text-align: center;
+}
+.area-blocked {
+  border: 1px solid var(--line);
+  background: repeating-linear-gradient(135deg, transparent 0 8px, var(--line) 8px 10px);
 }
 .room {
   min-width: 0;
@@ -370,15 +390,15 @@ dialog::backdrop { background: rgba(0, 0, 0, .4); }
   #pool.collapsed .pool-search, #pool.collapsed #pool-list, #pool.collapsed .hint { display: none; }
   #pool.collapsed #pool-toggle { transform: rotate(180deg); }
   .hint { display: none; }
-  .floor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 8px; }
+  .floor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; grid-template-rows: none !important; gap: 8px; padding: 8px; }
   .room { grid-column: auto !important; grid-row: auto !important; padding: 6px; }
-  .corridor { display: none; }
+  .area { display: none; }
   .beds { grid-template-columns: 1fr; }
   .bed-ico { display: none; }
   #selbar { top: 10px; bottom: auto; }
 }
 @media (max-width: 360px) {
-  .floor-grid { grid-template-columns: 1fr; }
+  .floor-grid { grid-template-columns: 1fr !important; }
 }
 
 /* ---------- wydruk ---------- */
