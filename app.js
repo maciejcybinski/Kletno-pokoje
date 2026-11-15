@@ -501,13 +501,45 @@
     const n = addPeople($('add-names').value);
     if (n) $('add-names').value = '';
   });
-  $('btn-export').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify({ people: state.people, beds: state.beds }, null, 2)], { type: 'application/json' });
+  function download(content, type, ext) {
+    const blob = new Blob([content], { type });
     const a = h('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `kletno-pokoje-${planId}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `kletno-pokoje-${planId}-${new Date().toISOString().slice(0, 10)}.${ext}`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  $('btn-export').addEventListener('click', () => {
+    download(JSON.stringify({ people: state.people, beds: state.beds }, null, 2), 'application/json', 'json');
+  });
+
+  // CSV: separator „;” i BOM, żeby polski Excel poprawnie otwierał plik z polskimi znakami
+  function toCsv(rows) {
+    const cell = (v) => {
+      v = String(v == null ? '' : v);
+      if (/^[=+\-@\t\r]/.test(v)) v = "'" + v; // ochrona przed formułami w arkuszu
+      return /[";\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+    };
+    return '﻿' + rows.map((r) => r.map(cell).join(';')).join('\r\n') + '\r\n';
+  }
+
+  $('btn-export-csv').addEventListener('click', () => {
+    const rows = [['Piętro', 'Pokój', 'Łóżko', 'Osoba']];
+    HOUSE.floors.forEach((f) =>
+      f.rooms.forEach((r) =>
+        r.bedIds.forEach((bid, i) => {
+          const pid = state.beds[bid];
+          rows.push([f.name, r.name || `Pokój ${r.no}`, i + 1, pid ? state.people[pid].name : '']);
+        })
+      )
+    );
+    const assigned = assignedSet();
+    Object.entries(state.people)
+      .filter(([pid]) => !assigned.has(pid))
+      .sort(byName)
+      .forEach(([, p]) => rows.push(['', 'Bez pokoju', '', p.name]));
+    download(toCsv(rows), 'text/csv;charset=utf-8', 'csv');
   });
   $('file-import').addEventListener('change', async (e) => {
     const file = e.target.files[0];
