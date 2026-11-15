@@ -6,9 +6,12 @@ Interaktywny rzut domu: przeciągasz osoby z puli na łóżka w pokojach. Dział
 - **Przeciąganie**: myszą albo na telefonie po przytrzymaniu palca na osobie.
 - **Dotknij i dotknij**: dotknij osobę, a potem łóżko. Upuszczenie na zajęte łóżko zamienia osoby miejscami.
 - **Odpięcie z łóżka**: przeciągnij osobę do puli „Bez pokoju” albo użyj przycisku „Do puli”.
-- **Osoby**: dodawanie wielu naraz (jedna w linii), zmiana nazwisk, usuwanie, eksport i import JSON.
+- **Wyjazdy**: przycisk z datą w górnym pasku. Każdy wyjazd ma nazwę, termin (od–do, wybierany w kalendarzu) i własny spis osób i przydziałów. Nowy wyjazd może skopiować listę osób z bieżącego.
+- **Osoby**: dodawanie wielu naraz (jedna w linii), zmiana nazwisk, usuwanie.
+- **Dane**: eksport CSV i JSON oraz import JSON dla bieżącego wyjazdu.
 - **Drukuj**: lista pokoi z przypisanymi osobami.
-- **Osobne plany**: np. na różne wyjazdy, przez dopisanie do adresu `?plan=lato2027`.
+
+Przy otwarciu strona pokazuje wyjazd ostatnio wybrany na tym urządzeniu. Jeśli takiego nie ma, wybiera wyjazd, który właśnie trwa, a gdy żaden nie trwa – najbliższy nadchodzący. Link do konkretnego wyjazdu ma postać `…/?plan=<id>`, a adres w przeglądarce zmienia się po wyborze wyjazdu, więc można go skopiować i wysłać.
 
 ## Uruchomienie lokalne
 
@@ -18,7 +21,7 @@ Wystarczy otworzyć `index.html` w przeglądarce. Bez konfiguracji Firebase stro
 
 1. Wejdź na <https://console.firebase.google.com> → **Dodaj projekt** (Google Analytics możesz wyłączyć).
 2. W menu **Kompilacja → Realtime Database** kliknij **Utwórz bazę danych**, wybierz lokalizację **europe-west1 (Belgia)** i start w **trybie zablokowanym**.
-3. W zakładce **Reguły** wklej zawartość pliku [database.rules.json](database.rules.json) i kliknij **Opublikuj**.
+3. W zakładce **Reguły** wklej zawartość pliku [database.rules.json](database.rules.json) i kliknij **Opublikuj**. Rób to ponownie po każdej zmianie tego pliku.
 4. Otwórz **Ustawienia projektu** (koło zębate) → **Twoje aplikacje** → ikona **`</>`** (Web), nadaj nazwę i zarejestruj (bez Hostingu).
 5. Skopiuj obiekt `firebaseConfig` i wklej jego wartości do [firebase-config.js](firebase-config.js). Upewnij się, że jest tam `databaseURL`; jeśli go brakuje, skopiuj adres z ekranu Realtime Database.
 6. Ustaw wspólne hasło (patrz niżej).
@@ -52,7 +55,7 @@ Repozytorium na GitHubie → **Settings → Pages → Build and deployment**: *D
 
 - Każdy, kto zna hasło, może oglądać i edytować przydziały. Nie widać, kto wprowadził zmianę.
 - Hasło przekazuj tylko osobom, które mają edytować przydziały.
-- Rób od czasu do czasu **Eksport JSON** jako kopię zapasową.
+- Rób od czasu do czasu kopię zapasową: **Dane → Eksport JSON** w górnym pasku.
 
 ## Zmiana układu domu
 

@@ -3,8 +3,15 @@
 
   // ---------- konfiguracja i indeks łóżek ----------
   const HOUSE = window.HOUSE;
-  const params = new URLSearchParams(location.search);
-  const planId = (params.get('plan') || 'default').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40) || 'default';
+  const cleanId = (s) => String(s || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+  const TRIP_KEY = 'kletno-pokoje:trip';
+  const urlPlan = cleanId(new URLSearchParams(location.search).get('plan'));
+  let storedPlan = '';
+  try { storedPlan = cleanId(localStorage.getItem(TRIP_KEY)); } catch (e) { /* brak dostępu */ }
+  // bieżący wyjazd: z linku, z ostatniego wyboru na tym urządzeniu, albo „default”
+  let planId = urlPlan || storedPlan || 'default';
+  const explicitChoice = !!(urlPlan || storedPlan);
+  let trips = {}; // { id: { name, from, to } }
 
   const BEDS = [];
   HOUSE.floors.forEach((f) =>
@@ -64,23 +71,71 @@
     }
   }
 
+  // Wspólny interfejs obu magazynów:
+  //  subscribe(onPlan, onTrips) – dane bieżącego wyjazdu i lista wyjazdów
+  //  setPlan(id)                – przełączenie wyjazdu
+  //  update(paths)              – zapis względem plans/<bieżący>
+  //  updateRoot(paths)          – zapis względem korzenia (trips/…, plans/…)
   function localStore() {
-    const key = 'kletno-pokoje:' + planId;
-    const load = () => {
-      try { return JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { return {}; }
+    const pkey = (id) => 'kletno-pokoje:' + id;
+    const tkey = 'kletno-pokoje:trips';
+    const load = (k) => {
+      try { return JSON.parse(localStorage.getItem(k)) || {}; } catch (e) { return {}; }
     };
-    let data = load();
-    let cb = null;
+    const save = (k, v) => {
+      try {
+        if (v === null) localStorage.removeItem(k);
+        else localStorage.setItem(k, JSON.stringify(v));
+      } catch (e) { /* brak miejsca / tryb prywatny */ }
+    };
+    let id = null;
+    let data = {};
+    let tripsData = load(tkey);
+    let planCb = null;
+    let tripsCb = null;
     window.addEventListener('storage', (e) => {
-      if (e.key === key) { data = load(); cb && cb(data); }
+      if (e.key === pkey(id)) { data = load(pkey(id)); planCb && planCb(data); }
+      if (e.key === tkey) { tripsData = load(tkey); tripsCb && tripsCb(tripsData); }
     });
     return {
       mode: 'local',
-      subscribe(f) { cb = f; f(data); setStatus('local'); },
+      subscribe(pf, tf) {
+        planCb = pf;
+        tripsCb = tf;
+        setStatus('local');
+        tf(tripsData);
+        if (id) pf(data);
+      },
+      setPlan(nid) {
+        id = nid;
+        data = load(pkey(id));
+        planCb && planCb(data);
+      },
       update(paths) {
         applyPaths(data, paths);
-        try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) { /* brak miejsca / tryb prywatny */ }
-        cb && cb(data);
+        save(pkey(id), data);
+        planCb && planCb(data);
+        return Promise.resolve();
+      },
+      updateRoot(paths) {
+        for (const [p, v] of Object.entries(paths)) {
+          const parts = p.split('/');
+          if (parts[0] === 'trips') {
+            applyPaths(tripsData, { [parts.slice(1).join('/')]: v });
+            save(tkey, tripsData);
+          } else if (parts[0] === 'plans') {
+            const pid = parts[1];
+            const rest = parts.slice(2).join('/');
+            if (!rest) save(pkey(pid), v);
+            else {
+              const d = load(pkey(pid));
+              applyPaths(d, { [rest]: v });
+              save(pkey(pid), d);
+            }
+            if (pid === id) { data = load(pkey(id)); planCb && planCb(data); }
+          }
+        }
+        tripsCb && tripsCb(tripsData);
         return Promise.resolve();
       },
     };
@@ -100,8 +155,28 @@
     firebase.initializeApp(cfg);
     const auth = firebase.auth();
     const db = firebase.database();
-    const ref = db.ref('plans/' + planId);
+    const tripsRef = db.ref('trips');
+    let planRef = null;
+    let currentId = null;
+    let user = null;
+    let planCb = null;
+    let tripsCb = null;
     const email = window.SHARED_LOGIN_EMAIL;
+
+    const onDbError = (err) => {
+      console.error(err);
+      setStatus('error', err.code === 'PERMISSION_DENIED'
+        ? 'Brak dostępu – sprawdź, czy w Firebase opublikowane są aktualne reguły z database.rules.json.'
+        : err.message);
+    };
+    function attachPlan() {
+      if (planRef) planRef.off();
+      planRef = null;
+      if (!user || !currentId) return;
+      planRef = db.ref('plans/' + currentId);
+      planRef.on('value', (s) => planCb && planCb(s.val()), onDbError);
+    }
+    const saveError = (e) => alert('Nie udało się zapisać zmian: ' + e.message);
     $('login-user').value = email;
 
     $('login-form').addEventListener('submit', async (e) => {
@@ -126,28 +201,37 @@
 
     return {
       mode: 'online',
-      subscribe(f) {
+      subscribe(pf, tf) {
+        planCb = pf;
+        tripsCb = tf;
         // logowanie zapamiętywane jest na urządzeniu, więc hasło podaje się raz
-        auth.onAuthStateChanged((user) => {
-          ref.off();
-          $('btn-logout').hidden = !user;
-          $('login').hidden = !!user;
-          if (!user) {
-            f(null);
+        auth.onAuthStateChanged((u) => {
+          user = u;
+          tripsRef.off();
+          $('btn-logout').hidden = !u;
+          $('login').hidden = !!u;
+          if (!u) {
+            attachPlan();
+            pf(null);
+            tf({});
             setTimeout(() => $('login-pass').focus(), 0);
             return;
           }
-          ref.on('value', (s) => f(s.val()), (err) => {
-            console.error(err);
-            setStatus('error', err.code === 'PERMISSION_DENIED'
-              ? 'Brak dostępu – adres w firebase-config.js i database.rules.json musi być taki sam.'
-              : err.message);
-          });
+          tripsRef.on('value', (s) => tf(s.val() || {}), onDbError);
+          attachPlan();
         });
         db.ref('.info/connected').on('value', (s) => setStatus(s.val() ? 'online' : 'offline'));
       },
+      setPlan(id) {
+        currentId = id;
+        attachPlan();
+      },
       update(paths) {
-        return ref.update(paths).catch((e) => alert('Nie udało się zapisać zmian: ' + e.message));
+        return db.ref('plans/' + currentId).update(paths).catch(saveError);
+      },
+      updateRoot(paths) {
+        // zapis wielościeżkowy – reguły sprawdzane są osobno dla każdej ścieżki
+        return db.ref().update(paths).catch(saveError);
       },
     };
   }
@@ -362,6 +446,7 @@
   function renderPrint() {
     const frag = document.createDocumentFragment();
     frag.append(h('h1', null, 'Kletno – przydział pokoi'));
+    if (trips[planId]) frag.append(h('p', null, tripTitle(planId)));
     HOUSE.floors.forEach((f) => {
       frag.append(h('h2', null, f.name));
       const t = h('table');
@@ -539,6 +624,22 @@
   $('selbar-cancel').addEventListener('click', () => select(null));
   $('pool-toggle').addEventListener('click', () => $('pool').classList.toggle('collapsed'));
 
+  // ---------- menu „Dane” w górnym pasku ----------
+  const dataMenu = $('data-menu');
+  const dataBtn = $('btn-data');
+  function setDataMenu(open) {
+    dataMenu.hidden = !open;
+    dataBtn.setAttribute('aria-expanded', String(open));
+  }
+  dataBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setDataMenu(dataMenu.hidden);
+  });
+  dataMenu.addEventListener('click', (e) => { if (e.target.closest('[role="menuitem"]')) setDataMenu(false); });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.menu')) setDataMenu(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setDataMenu(false); });
+  $('btn-import').addEventListener('click', () => $('file-import').click());
+
   // ---------- telefon: przełącznik „Rzut / Lista” ----------
   const VIEW_KEY = 'kletno-pokoje:view';
   let planView = false;
@@ -587,13 +688,15 @@
     const blob = new Blob([content], { type });
     const a = h('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `kletno-pokoje-${planId}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+    const t = trips[planId];
+    const slug = t ? `${t.from}-${fold(t.name).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}` : planId;
+    a.download = `kletno-pokoje-${slug}.${ext}`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
   $('btn-export').addEventListener('click', () => {
-    download(JSON.stringify({ people: state.people, beds: state.beds }, null, 2), 'application/json', 'json');
+    download(JSON.stringify({ trip: trips[planId] || null, people: state.people, beds: state.beds }, null, 2), 'application/json', 'json');
   });
 
   // CSV: separator „;” i BOM, żeby polski Excel poprawnie otwierał plik z polskimi znakami
@@ -639,7 +742,8 @@
         const id = String(pid).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30);
         if (BED_BY_ID.has(bid) && people[id]) beds[bid] = id;
       }
-      if (!confirm(`Zastąpić obecne dane? (${Object.keys(people).length} osób, ${Object.keys(beds).length} przydziałów)`)) return;
+      const target = trips[planId] ? `wyjazdu „${trips[planId].name}”` : 'bieżącego spisu';
+      if (!confirm(`Zastąpić dane ${target}? (${Object.keys(people).length} osób, ${Object.keys(beds).length} przydziałów)`)) return;
       store.update({ people, beds });
     } catch (err) {
       alert('Nieprawidłowy plik: ' + err.message);
@@ -651,12 +755,181 @@
   $('btn-clear-all').addEventListener('click', () => {
     if (confirm('Usunąć WSZYSTKIE osoby i przydziały?')) store.update({ beds: null, people: null });
   });
-  $('plan-info').textContent =
-    `Plan: „${planId}”. Osobny plan (np. na inny wyjazd) otworzysz, dodając do adresu ?plan=nazwa.`;
+  // ---------- wyjazdy (terminy) ----------
+  const MONTHS = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+  function fmtRange(from, to) {
+    const [y1, m1, d1] = from.split('-').map(Number);
+    const [y2, m2, d2] = to.split('-').map(Number);
+    if (from === to) return `${d1} ${MONTHS[m1 - 1]} ${y1}`;
+    if (y1 === y2 && m1 === m2) return `${d1}–${d2} ${MONTHS[m1 - 1]} ${y1}`;
+    if (y1 === y2) return `${d1} ${MONTHS[m1 - 1]} – ${d2} ${MONTHS[m2 - 1]} ${y1}`;
+    return `${d1} ${MONTHS[m1 - 1]} ${y1} – ${d2} ${MONTHS[m2 - 1]} ${y2}`;
+  }
+  function tripTitle(id) {
+    const t = trips[id];
+    return t ? `${t.name} · ${fmtRange(t.from, t.to)}` : '';
+  }
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  // trwający wyjazd, potem najbliższy nadchodzący, potem ostatni miniony
+  function bestTrip() {
+    const list = Object.entries(trips);
+    if (!list.length) return null;
+    const today = todayStr();
+    const now = list.find(([, t]) => t.from <= today && t.to >= today);
+    if (now) return now[0];
+    const next = list.filter(([, t]) => t.from > today).sort((a, b) => a[1].from.localeCompare(b[1].from));
+    if (next.length) return next[0][0];
+    return list.sort((a, b) => b[1].from.localeCompare(a[1].from))[0][0];
+  }
+  const sortedTrips = () => Object.entries(trips).sort((a, b) => b[1].from.localeCompare(a[1].from));
+
+  function switchTrip(id) {
+    planId = id;
+    try { localStorage.setItem(TRIP_KEY, id); } catch (e) { /* brak dostępu */ }
+    const url = new URL(location.href);
+    if (id === 'default') url.searchParams.delete('plan');
+    else url.searchParams.set('plan', id);
+    history.replaceState(null, '', url);
+    select(null);
+    state = { people: {}, beds: {} };
+    render();
+    store.setPlan(id);
+    updateTripUI();
+  }
+
+  function updateTripUI() {
+    const label = $('trip-label');
+    if (trips[planId]) label.textContent = tripTitle(planId);
+    else if (planId === 'default') label.textContent = Object.keys(trips).length ? 'Spis bez terminu' : 'Ustaw termin wyjazdu';
+    else label.textContent = 'Nieznany wyjazd';
+    $('btn-trip').classList.toggle('unset', !trips[planId]);
+    document.title = trips[planId] ? `${trips[planId].name} – Kletno` : 'Kletno – przydział pokoi';
+    renderTripsDialog();
+  }
+
+  let editingId = null; // null = tworzenie nowego wyjazdu
+  function renderTripsDialog() {
+    if (!$('trips-dlg').open) return;
+    const frag = document.createDocumentFragment();
+    const list = sortedTrips();
+    // dotychczasowy spis bez terminu – żeby dało się mu go nadać
+    if (planId === 'default' && !trips.default) list.unshift(['default', null]);
+    const today = todayStr();
+    list.forEach(([id, t]) => {
+      const row = h('div', 'trip-row' + (id === planId ? ' current' : ''));
+      const pick = h('button', 'trip-pick');
+      pick.append(h('strong', null, t ? t.name : 'Spis bez terminu'), h('span', 'muted small', t ? fmtRange(t.from, t.to) : 'ustaw nazwę i daty ✎'));
+      if (t && t.to < today) pick.append(h('span', 'tag', 'miniony'));
+      else if (t && t.from <= today) pick.append(h('span', 'tag now', 'trwa'));
+      if (id === planId) pick.append(h('span', 'tag cur', 'wybrany'));
+      pick.addEventListener('click', () => { if (id !== planId) switchTrip(id); $('trips-dlg').close(); });
+      const edit = h('button', 'icon', '✎');
+      edit.title = 'Edytuj';
+      edit.addEventListener('click', () => startEdit(id));
+      row.append(pick, edit);
+      frag.append(row);
+    });
+    if (!list.length) frag.append(h('p', 'muted small', 'Nie ma jeszcze żadnych wyjazdów.'));
+    $('trips-list').replaceChildren(frag);
+  }
+
+  function startEdit(id) {
+    editingId = id;
+    const t = trips[id] || { name: '', from: '', to: '' };
+    $('trip-form-title').textContent = id ? 'Edytuj wyjazd' : 'Nowy wyjazd';
+    $('trip-name').value = t.name;
+    $('trip-from').value = t.from;
+    $('trip-to').value = t.to;
+    $('trip-save').textContent = id ? 'Zapisz' : 'Utwórz';
+    $('trip-cancel-edit').hidden = !id;
+    $('trip-delete').hidden = !id || !trips[id];
+    // kopiowanie osób ma sens tylko przy nowym wyjeździe, gdy jest z czego kopiować
+    const canCopy = !id && Object.keys(state.people).length > 0 && !isFirstTrip();
+    $('trip-copy-wrap').hidden = !canCopy;
+    $('trip-copy').checked = false;
+    $('trip-error').hidden = true;
+    if (id) $('trip-name').focus();
+  }
+  // pierwszy wyjazd przejmuje dotychczasowy spis („default”), żeby dane nie przepadły
+  const isFirstTrip = () => !Object.keys(trips).length && planId === 'default';
+
+  $('trip-from').addEventListener('change', () => {
+    if (!$('trip-to').value || $('trip-to').value < $('trip-from').value) $('trip-to').value = $('trip-from').value;
+  });
+  $('trip-to').addEventListener('focus', () => { if ($('trip-from').value) $('trip-to').min = $('trip-from').value; });
+
+  $('trip-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('trip-name').value.trim().slice(0, 60);
+    const from = $('trip-from').value;
+    const to = $('trip-to').value;
+    const err = $('trip-error');
+    const fail = (msg) => { err.textContent = msg; err.hidden = false; };
+    if (!name) return fail('Podaj nazwę wyjazdu.');
+    if (!from || !to) return fail('Wybierz datę początku i końca.');
+    if (to < from) return fail('Data końca nie może być wcześniejsza niż data początku.');
+    const meta = { name, from, to };
+    if (editingId) {
+      store.updateRoot({ ['trips/' + editingId]: meta });
+      startEdit(null);
+      return;
+    }
+    const id = isFirstTrip() ? 'default' : 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    const paths = { ['trips/' + id]: meta };
+    if (id !== 'default' && $('trip-copy').checked) paths['plans/' + id + '/people'] = state.people;
+    store.updateRoot(paths);
+    trips = Object.assign({}, trips, { [id]: meta }); // od razu, nie czekając na bazę
+    if (id !== planId) switchTrip(id);
+    else updateTripUI();
+    $('trips-dlg').close();
+  });
+
+  $('trip-cancel-edit').addEventListener('click', () => startEdit(null));
+  $('trip-delete').addEventListener('click', () => {
+    const id = editingId;
+    const t = trips[id];
+    if (!t) return;
+    if (!confirm(`Usunąć wyjazd „${t.name}” (${fmtRange(t.from, t.to)}) razem z listą osób i przydziałami?\nTego nie da się cofnąć – możesz najpierw zrobić Dane → Eksport JSON.`)) return;
+    store.updateRoot({ ['trips/' + id]: null, ['plans/' + id]: null });
+    const rest = Object.assign({}, trips);
+    delete rest[id];
+    trips = rest;
+    startEdit(null);
+    if (id === planId) switchTrip(bestTrip() || 'default');
+    else updateTripUI();
+  });
+
+  $('btn-trip').addEventListener('click', () => {
+    $('trips-dlg').showModal();
+    // bez żadnego wyjazdu od razu formularz nowego; przy spisie bez terminu – jego edycja
+    startEdit(planId === 'default' && !trips.default && Object.keys(trips).length ? 'default' : null);
+    renderTripsDialog();
+  });
 
   // ---------- start ----------
-  store.subscribe((v) => {
-    state = normalize(v);
-    render();
-  });
+  let tripsLoaded = false;
+  store.setPlan(planId);
+  store.subscribe(
+    (v) => {
+      state = normalize(v);
+      render();
+    },
+    (t) => {
+      trips = t || {};
+      if (!tripsLoaded && Object.keys(trips).length) {
+        tripsLoaded = true;
+        // bez wcześniejszego wyboru (albo gdy zapamiętany wyjazd zniknął) – wybierz najlepszy pasujący
+        const missing = !trips[planId] && planId !== 'default';
+        if (!explicitChoice || missing) {
+          const best = bestTrip();
+          if (best && best !== planId) switchTrip(best);
+        }
+      }
+      updateTripUI();
+    }
+  );
+  updateTripUI();
 })();

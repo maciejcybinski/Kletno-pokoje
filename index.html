@@ -9,11 +9,23 @@
 <body>
   <header class="top">
     <h1>Kletno <span class="sub">· przydział pokoi</span></h1>
+    <button id="btn-trip" class="trip-btn" title="Wybierz, utwórz albo edytuj wyjazd">
+      <span aria-hidden="true">📅</span> <span id="trip-label">…</span> ▾
+    </button>
     <span id="status" class="status">Łączenie…</span>
     <span id="stats" class="stats"></span>
     <div class="actions">
       <button id="btn-people" class="primary">Osoby</button>
       <button id="btn-view" class="only-mobile" aria-pressed="false" title="Przełącz między listą pokoi a rzutem pięter">Rzut</button>
+      <div class="menu">
+        <button id="btn-data" aria-haspopup="menu" aria-expanded="false" aria-controls="data-menu">Dane ▾</button>
+        <div id="data-menu" class="menu-pop" role="menu" hidden>
+          <button id="btn-export-csv" role="menuitem">Eksport CSV</button>
+          <button id="btn-export" role="menuitem">Eksport JSON</button>
+          <button id="btn-import" role="menuitem">Import JSON…</button>
+          <input id="file-import" type="file" accept="application/json,.json" hidden>
+        </div>
+      </div>
       <button id="btn-print">Drukuj</button>
       <button id="btn-logout" hidden>Wyloguj</button>
     </div>
@@ -53,7 +65,7 @@
 
   <dialog id="dlg">
     <form method="dialog" class="dlg-head">
-      <h2>Osoby i dane</h2>
+      <h2>Osoby</h2>
       <button class="icon" aria-label="Zamknij">✕</button>
     </form>
     <div class="dlg-body">
@@ -67,15 +79,44 @@
         <div id="people-list"></div>
       </section>
       <section>
-        <h3>Dane</h3>
+        <h3>Czyszczenie</h3>
         <div class="row">
-          <button id="btn-export-csv">Eksport CSV</button>
-          <button id="btn-export">Eksport JSON</button>
-          <label class="btn">Import JSON<input id="file-import" type="file" accept="application/json,.json" hidden></label>
           <button id="btn-reset" class="danger">Wyczyść przydziały</button>
           <button id="btn-clear-all" class="danger">Usuń wszystko</button>
         </div>
-        <p id="plan-info" class="muted small"></p>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog id="trips-dlg">
+    <form method="dialog" class="dlg-head">
+      <h2>Wyjazdy</h2>
+      <button class="icon" aria-label="Zamknij">✕</button>
+    </form>
+    <div class="dlg-body">
+      <section>
+        <div id="trips-list"></div>
+      </section>
+      <section>
+        <h3 id="trip-form-title">Nowy wyjazd</h3>
+        <form id="trip-form" class="trip-form" novalidate>
+          <label>Nazwa
+            <input id="trip-name" maxlength="60" placeholder="np. Kletno – majówka 2027" autocomplete="off">
+          </label>
+          <div class="date-row">
+            <label>Od <input id="trip-from" type="date"></label>
+            <label>Do <input id="trip-to" type="date"></label>
+          </div>
+          <label id="trip-copy-wrap" class="check" hidden>
+            <input id="trip-copy" type="checkbox"> Skopiuj listę osób z bieżącego wyjazdu (bez przydziałów)
+          </label>
+          <p id="trip-error" class="login-error" hidden></p>
+          <div class="row">
+            <button id="trip-save" type="submit" class="primary">Utwórz</button>
+            <button id="trip-cancel-edit" type="button" hidden>Anuluj edycję</button>
+            <button id="trip-delete" type="button" class="danger" hidden>Usuń wyjazd</button>
+          </div>
+        </form>
       </section>
     </div>
   </dialog>

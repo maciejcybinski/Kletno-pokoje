@@ -1,5 +1,16 @@
 {
   "rules": {
+    "trips": {
+      ".read": "auth != null && auth.token.email == 'kletno@example.com'",
+      ".write": "auth != null && auth.token.email == 'kletno@example.com'",
+      "$trip": {
+        ".validate": "$trip.matches(/^[A-Za-z0-9_-]{1,40}$/) && newData.hasChildren(['name', 'from', 'to'])",
+        "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 60" },
+        "from": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "to": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.val() >= newData.parent().child('from').val()" },
+        "$other": { ".validate": false }
+      }
+    },
     "plans": {
       "$plan": {
         ".read": "auth != null && auth.token.email == 'kletno@example.com' && $plan.matches(/^[A-Za-z0-9_-]{1,40}$/)",

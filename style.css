@@ -119,6 +119,32 @@ header h1 .sub { font-weight: 400; color: var(--muted); }
 .stats.warn { color: var(--danger); font-weight: 600; }
 .actions { margin-left: auto; display: flex; gap: 8px; }
 
+/* ---------- rozwijane menu ---------- */
+.menu { position: relative; }
+.menu-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .18);
+}
+.menu-pop[hidden] { display: none; }
+.menu-pop button {
+  justify-content: flex-start;
+  border: none;
+  background: transparent;
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+.menu-pop button:hover, .menu-pop button:focus-visible { background: var(--bed); }
+
 /* ---------- układ ---------- */
 .layout {
   display: grid;
@@ -343,6 +369,35 @@ dialog::backdrop { background: rgba(0, 0, 0, .4); }
 
 #print-list { display: none; }
 
+/* ---------- wyjazdy ---------- */
+.trip-btn { font-weight: 600; max-width: 100%; }
+.trip-btn #trip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trip-btn.unset { color: var(--warn); border-color: var(--warn); border-style: dashed; }
+#trips-list { display: flex; flex-direction: column; gap: 6px; }
+.trip-row { display: flex; align-items: center; gap: 4px; }
+.trip-pick {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 4px 10px;
+  padding: 9px 12px;
+  text-align: left;
+}
+.trip-row.current .trip-pick { border-color: var(--accent); background: var(--accent-soft); }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--bed); color: var(--muted); border: 1px solid var(--line); }
+.tag.now { color: var(--accent); border-color: var(--accent); }
+.tag.cur { background: var(--accent); color: #fff; border-color: transparent; }
+@media (prefers-color-scheme: dark) { .tag.cur { color: #10261a; } }
+.trip-form { display: flex; flex-direction: column; gap: 10px; }
+.trip-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.trip-form label.check { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); }
+.trip-form label.check[hidden] { display: none; }
+.trip-form .check input { width: auto; }
+.date-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.date-row label, .date-row input { min-width: 0; }
+#trip-cancel-edit[hidden], #trip-delete[hidden] { display: none; }
+
 /* ---------- logowanie ---------- */
 #login {
   position: fixed;
@@ -376,6 +431,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .4); }
   .only-mobile { display: inline-flex; }
   header.top { padding: 8px 12px; }
   header h1 .sub { display: none; }
+  .trip-btn { order: 4; width: 100%; justify-content: flex-start; }
   .stats { order: 5; width: 100%; font-size: 12px; }
   .layout { display: block; padding: 10px 10px 50vh; }
   #pool {
