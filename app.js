@@ -475,7 +475,88 @@
     renderStats();
     renderPeopleDialog(false);
     updateSelbar();
+    if ($('bed-dlg').open) {
+      // ktoś inny zajął to łóżko w międzyczasie
+      if (state.beds[pickerBed]) $('bed-dlg').close();
+      else renderBedPicker();
+    }
   }
+
+  // ---------- okienko „kto śpi na tym łóżku?” ----------
+  let pickerBed = null;
+  function openBedPicker(bid) {
+    pickerBed = bid;
+    const b = BED_BY_ID.get(bid);
+    $('bed-dlg-title').textContent = `${b.room.name || 'Pokój ' + b.room.no} · łóżko ${b.room.bedIds.indexOf(bid) + 1}`;
+    $('bed-search').value = '';
+    renderBedPicker();
+    $('bed-dlg').showModal();
+    $('bed-search').focus();
+  }
+
+  function pickerOptions() {
+    const q = $('bed-search').value.trim().slice(0, 60);
+    const fq = fold(q);
+    const where = {};
+    for (const [bid, pid] of Object.entries(state.beds)) where[pid] = BED_BY_ID.get(bid).room.no;
+    const matches = Object.entries(state.people)
+      .filter(([, p]) => !fq || fold(p.name).includes(fq))
+      .sort((a, b) => (a[0] in where) - (b[0] in where) || byName(a, b)) // najpierw osoby bez pokoju
+      .slice(0, 50)
+      .map(([pid, p]) => ({ kind: 'person', pid, name: p.name, room: where[pid] }));
+    const exact = Object.values(state.people).some((p) => fold(p.name) === fq);
+    if (q && !exact) matches.push({ kind: 'new', name: q });
+    return matches;
+  }
+
+  function renderBedPicker() {
+    const opts = pickerOptions();
+    const frag = document.createDocumentFragment();
+    opts.forEach((o, i) => {
+      const btn = h('button', 'picker-opt' + (i === 0 ? ' first' : ''));
+      btn.type = 'button';
+      btn.setAttribute('role', 'option');
+      if (o.kind === 'new') {
+        btn.classList.add('new');
+        btn.append(h('span', 'av plus', '+'), h('span', 'nm', `Dodaj „${o.name}”`));
+      } else {
+        const av = h('span', 'av', initials(o.name));
+        av.style.background = `hsl(${hue(o.name)} 50% 45%)`;
+        btn.append(av, h('span', 'nm', o.name));
+        if (o.room) btn.append(h('span', 'tag', `pok. ${o.room}`));
+      }
+      btn.addEventListener('click', () => choosePickerOption(o));
+      frag.append(btn);
+    });
+    if (!opts.length) {
+      frag.append(h('p', 'muted small', Object.keys(state.people).length
+        ? 'Brak pasujących osób.'
+        : 'Lista osób jest pusta – wpisz imię, aby dodać pierwszą osobę.'));
+    }
+    $('bed-options').replaceChildren(frag);
+  }
+
+  function choosePickerOption(o) {
+    const bid = pickerBed;
+    $('bed-dlg').close();
+    if (!bid || state.beds[bid]) return;
+    if (o.kind === 'new') {
+      const pid = newId();
+      store.update({ ['people/' + pid]: { name: o.name }, ['beds/' + bid]: pid });
+    } else {
+      move(o.pid, bid);
+    }
+  }
+
+  $('bed-search').addEventListener('input', renderBedPicker);
+  $('bed-search').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const first = pickerOptions()[0];
+    if (first) choosePickerOption(first);
+  });
+  // kliknięcie w tło zamyka okienko
+  $('bed-dlg').addEventListener('click', (e) => { if (e.target === $('bed-dlg')) $('bed-dlg').close(); });
 
   // ---------- zaznaczanie (tryb „dotknij i dotknij”) ----------
   function select(pid) {
@@ -614,6 +695,7 @@
       return select(pid);
     }
     if (bed && selected) { move(selected, bed.dataset.bed); return select(null); }
+    if (bed && !state.beds[bed.dataset.bed]) return openBedPicker(bed.dataset.bed);
     if (pool && selected) { move(selected, null); return select(null); }
     if (selected && !bed && !pool) select(null);
   }, true);
