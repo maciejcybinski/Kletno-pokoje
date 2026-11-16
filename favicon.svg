@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Uproszczona ikona schroniska na podstawie dawnego zdjęcia (sepia) -->
+  <defs>
+    <clipPath id="c"><rect width="64" height="64" rx="12"/></clipPath>
+    <clipPath id="gable"><path d="M8 33 L20 14 L32 33 Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <!-- niebo -->
+    <rect width="64" height="64" fill="#ddcdb0"/>
+    <!-- las w tle -->
+    <path d="M0 42 V12 L4 5 L7 12 L11 3 L15 12 L19 6 L23 14 L28 9 L33 17 L38 13 L43 21 L48 18 L53 25 L58 23 L64 29 V42 Z" fill="#4b3e31"/>
+    <!-- długi dach -->
+    <path d="M20 9 L52 21 L64 38.5 V39 L33 35.6 Z" fill="#3f342a"/>
+    <!-- ściana boczna w perspektywie: okap opada, podstawa się podnosi -->
+    <path d="M33 35.5 L64 39 V53.5 L33 55 Z" fill="#e9dfcc"/>
+    <!-- balkon zbiegający się ku tyłowi -->
+    <path d="M35 39.5 L64 43 V47.5 L35 45.5 Z" fill="#3f342a"/>
+    <path d="M38 40.6 V45.1 M42 41.1 V45.4 M45.7 41.5 V45.6 M49.2 41.9 V45.9 M52.5 42.3 V46.1 M55.6 42.7 V46.3 M58.5 43 V46.5 M61.2 43.4 V46.7" stroke="#d9cbb2" stroke-width="1.2"/>
+    <!-- okna i drzwi parteru, zwężające się z odległością -->
+    <path d="M37.5 48 L40.3 48.2 V51.6 L37.5 51.6 Z" fill="#3f342a"/>
+    <path d="M46.5 48.5 L49.3 48.7 V54.3 L46.5 54.5 Z" fill="#3f342a"/>
+    <path d="M55 49 L57.3 49.2 V52.2 L55 52.3 Z" fill="#3f342a"/>
+    <!-- szczyt frontowy: dach i deskowanie -->
+    <path d="M3 36 L20 8 L37 36 H33 L20 14 L7 36 Z" fill="#3f342a"/>
+    <path d="M8 33 L20 14 L32 33 Z" fill="#f4ecdf"/>
+    <g clip-path="url(#gable)" stroke="#9a8770" stroke-width="1.2">
+      <path d="M11 14 V34 M14 14 V34 M17 14 V34 M23 14 V34 M26 14 V34 M29 14 V34"/>
+    </g>
+    <rect x="18" y="22" width="4" height="5" fill="#3f342a"/>
+    <!-- ściana frontowa -->
+    <!-- górne narożniki ścięte wzdłuż linii szczytu – okap zachodzi na ścianę -->
+    <path d="M8 33 H32 L33 34.6 V55 H7 V34.6 Z" fill="#f8f2e7"/>
+    <rect x="11" y="38" width="4" height="5" fill="#3f342a"/>
+    <rect x="25" y="38" width="4" height="5" fill="#3f342a"/>
+    <rect x="11" y="47" width="4" height="5" fill="#3f342a"/>
+    <rect x="25" y="47" width="4" height="5" fill="#3f342a"/>
+    <!-- droga -->
+    <path d="M0 55 H33 L64 53.5 V64 H0 Z" fill="#cdbb99"/>
+  </g>
+</svg>
