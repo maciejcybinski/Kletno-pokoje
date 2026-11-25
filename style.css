@@ -337,6 +337,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 #selbar[hidden] { display: none; }
 #selbar button { background: transparent; color: var(--panel); border-color: rgba(127, 127, 127, .5); padding: 5px 10px; }
 #selbar button[hidden] { display: none; }
+#selbar button.del { color: #f2827a; border-color: rgba(242, 130, 122, .5); }
+@media (prefers-color-scheme: dark) { #selbar button.del { color: #b3261e; border-color: rgba(179, 38, 30, .5); } }
+#selbar { flex-wrap: wrap; justify-content: center; }
 
 /* ---------- okno dialogowe ---------- */
 dialog {
@@ -474,7 +477,8 @@ dialog.picker .dlg-body { padding-top: 12px; }
   #pool.collapsed .pool-search, #pool.collapsed #pool-list, #pool.collapsed .hint { display: none; }
   #pool.collapsed #pool-toggle { transform: rotate(180deg); }
   .hint { display: none; }
-  #selbar { top: 10px; bottom: auto; }
+  #selbar { top: 10px; bottom: auto; padding: 8px; width: calc(100% - 24px); }
+  #selbar > span { flex-basis: 100%; text-align: center; }
   .bed-ico { display: none; }
   #btn-print { display: none; }
 

@@ -704,6 +704,10 @@
 
   $('selbar-pool').addEventListener('click', () => { if (selected) move(selected, null); select(null); });
   $('selbar-cancel').addEventListener('click', () => select(null));
+  $('selbar-delete').addEventListener('click', () => {
+    const p = selected && state.people[selected];
+    if (p && confirm(`Usunąć „${p.name}” z listy osób?`)) removePerson(selected);
+  });
   $('pool-toggle').addEventListener('click', () => $('pool').classList.toggle('collapsed'));
 
   // ---------- menu „Dane” w górnym pasku ----------
